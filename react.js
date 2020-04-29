@@ -1,26 +1,26 @@
-const createTextElement = text => ({
+const createTextElement = (text) => ({
   type: 'TEXT_ELEMENT',
   props: {
     nodeValue: text,
-    children: []
-  }
+    children: [],
+  },
 });
 
-const createDom = fiber => {
+const createDom = (fiber) => {
   const dom =
     fiber.type === 'TEXT_ELEMENT'
       ? document.createTextNode('')
       : document.createElement(fiber.type);
 
-  const isProperty = key => key !== 'children';
+  const isProperty = (key) => key !== 'children';
   Object.keys(fiber.props)
     .filter(isProperty)
-    .forEach(name => (dom[name] = fiber.props[name]));
+    .forEach((name) => (dom[name] = fiber.props[name]));
 
   return dom;
 };
 
-const performUnitOfWork = fiber => {
+const performUnitOfWork = (fiber) => {
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
   }
@@ -35,7 +35,7 @@ const performUnitOfWork = fiber => {
       type: element.type,
       props: element.props,
       parent: fiber,
-      dom: null
+      dom: null,
     };
 
     if (index === 0) {
@@ -61,7 +61,7 @@ const performUnitOfWork = fiber => {
   }
 };
 
-const commitWork = fiber => {
+const commitWork = (fiber) => {
   if (!fiber) {
     return;
   }
@@ -79,7 +79,7 @@ const commitRoot = () => {
 
 let nextUnitOfWork = null;
 let workInProgressRoot = null;
-const workLoop = deadline => {
+const workLoop = (deadline) => {
   let shouldYield = false;
   while (nextUnitOfWork && !shouldYield) {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
@@ -101,10 +101,10 @@ class React {
       type,
       props: {
         ...props,
-        children: children.map(child =>
+        children: children.map((child) =>
           typeof child === 'object' ? child : createTextElement(child)
-        )
-      }
+        ),
+      },
     };
   }
 
@@ -112,8 +112,8 @@ class React {
     workInProgressRoot = {
       dom: container,
       props: {
-        children: [element]
-      }
+        children: [element],
+      },
     };
 
     nextUnitOfWork = workInProgressRoot;
