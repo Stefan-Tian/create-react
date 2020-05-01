@@ -73,13 +73,26 @@ const reconcileChildren = (wipFiber, elements) => {
   }
 }
 
-const performUnitOfWork = (fiber) => {
+const updateFunctionComponent = (fiber) => {
+  const children = [fiber.type(fiber.props)]
+  reconcileChildren(fiber, children)
+}
+
+const updateHostComponent = (fiber) => {
   if (!fiber.dom) {
     fiber.dom = createDom(fiber)
   }
 
-  const elements = fiber.props.children
-  reconcileChildren(fiber, elements)
+  reconcileChildren(fiber, fiber.props.children)
+}
+
+const performUnitOfWork = (fiber) => {
+  const isFunctionComponent = fiber.type instanceof Function
+  if (isFunctionComponent) {
+    updateFunctionComponent(fiber)
+  } else {
+    updateHostComponent(fiber)
+  }
 
   if (fiber.child) {
     return fiber.child
@@ -134,20 +147,32 @@ const updateDom = (dom, prevProps, nextProps) => {
     })
 }
 
+const commitDeletion = (fiber, domParent) => {
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom)
+  } else {
+    commitDeletion(fiber.child, domParent)
+  }
+}
+
 const commitWork = (fiber) => {
   if (!fiber) {
     return
   }
 
-  const domParent = fiber.parent.dom
+  let domParentFiber = fiber.parent
+  while (!domParentFiber.dom) {
+    domParentFiber = domParentFiber.parent
+  }
+  const domParent = domParentFiber.dom
   if (fiber.effectTag === 'PLACEMENT' && fiber.dom != null) {
     domParent.appendChild(fiber.dom)
   } else if (fiber.effectTag === 'UPDATE' && fiber.dom !== null) {
     updateDom(fiber.dom, fiber.alternate.props, fiber.props)
   } else if (fiber.effectTag === 'DELETION') {
-    domParent.removeChild(fiber.dom)
+    commitDeletion(fiber, domParent)
   }
-  domParent.appendChild(fiber.dom)
+
   commitWork(fiber.child)
   commitWork(fiber.sibling)
 }
@@ -206,13 +231,19 @@ class React {
   }
 }
 
-const element = React.createElement(
-  'div',
-  { id: 'foo' },
-  React.createElement('div', null, 'bar'),
-  React.createElement('span'),
-  'hello'
-)
+// const element = React.createElement(
+//   'div',
+//   { id: 'foo' },
+//   React.createElement('div', null, 'bar'),
+//   React.createElement('span'),
+//   'hello'
+// )
+
+function App(props) {
+  return React.createElement('h1', null, 'Hi ', props.name)
+}
+
+const element = React.createElement(App, { name: 'foo' })
 
 const container = document.getElementById('root')
 React.render(element, container)
